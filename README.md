@@ -52,7 +52,7 @@
 
 - **💻 响应式设计**：响应式布局自动适配PC和大部分手机端浏览器
 
-- **📧 邮件发送**：集成Resend发送邮件，支持群发，内嵌图片和附件发送，发送状态查看
+- **📧 邮件发送**：支持 Cloudflare Email Service 和 Resend 发送邮件，支持群发、内嵌图片、附件发送和发送状态查看
 
 - **🛡️ 管理员功能**：可以对用户，邮件进行管理，RABC权限控制对功能及使用资源限制
 
@@ -86,13 +86,60 @@
 
 - **UI框架**：[Element Plus](https://element-plus.org/) 
 
-- **邮件推送：** [Resend](https://resend.com/)
+- **邮件发送：** [Cloudflare Email Service](https://developers.cloudflare.com/email-service/) / [Resend](https://resend.com/)
 
 - **缓存**：[Cloudflare KV](https://developers.cloudflare.com/kv/)
 
 - **数据库**：[Cloudflare D1](https://developers.cloudflare.com/d1/)
 
 - **文件存储**：[Cloudflare R2](https://developers.cloudflare.com/r2/)
+
+## 发信功能配置
+
+Cloud Mail 支持两种发信方式：
+
+1. **Cloudflare Email Service**：推荐优先使用，直接通过 Cloudflare Workers 绑定发送邮件。
+2. **Resend**：作为兼容方案，可在后台为不同域名配置 Resend API Key。
+
+当 Worker 配置了 Cloudflare Email Service 绑定时，系统会优先使用 Cloudflare 发信；未配置时会回退到 Resend。
+
+### Cloudflare Email Service
+
+如果要启用 Cloudflare Email Service，需要先在 Cloudflare Dashboard 中完成 Email Service / 发信域名相关配置，然后在 `mail-worker/wrangler.toml` 中添加：
+
+```toml
+[[send_email]]
+name = "EMAIL"
+```
+
+> 注意：这里必须使用 `name = "EMAIL"`，不要写成 `binding = "EMAIL"`。后端代码会通过 `c.env.EMAIL.send(...)` 调用该绑定。
+
+本项目已在以下配置文件中预留该绑定：
+
+- `mail-worker/wrangler.toml`
+- `mail-worker/wrangler-dev.toml`
+- `mail-worker/wrangler-test.toml`
+- `mail-worker/wrangler-action.toml`
+
+### Resend
+
+如果不使用 Cloudflare Email Service，也可以继续使用 Resend：
+
+1. 在 Resend 注册账号。
+2. 验证发信域名。
+3. 获取 API Key。
+4. 登录后台，在系统设置中为对应域名配置 Resend Token。
+
+### 发信能力说明
+
+当前发信功能支持：
+
+- 普通文本 / HTML 邮件
+- 多收件人群发
+- 回复邮件头信息
+- 附件发送
+- 内嵌图片发送
+- 发送状态记录
 
 ## 目录结构
 
@@ -153,6 +200,7 @@ cloud-mail
 ## 交流
 
 [Telegram](https://t.me/cloud_mail_tg)
+
 
 
 

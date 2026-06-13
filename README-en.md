@@ -47,7 +47,7 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **💻 Responsive Design**: Automatically adapts to both desktop and most mobile browsers.
 
-- **📧 Email Sending**: Integrated with Resend, supporting bulk email sending and attachments.
+- **📧 Email Sending**: Supports Cloudflare Email Service and Resend, including bulk sending, inline images, attachments, and delivery status tracking.
 
 - **🛡️ Admin Features**: Admin controls for user and email management with RBAC-based access control.
 
@@ -79,13 +79,60 @@ With only one domain, you can create multiple different email addresses, similar
 
 - **UI Framework**: [Element Plus](https://element-plus.org/)
 
-- **Email Service**: [Resend](https://resend.com/)
+- **Email Sending**: [Cloudflare Email Service](https://developers.cloudflare.com/email-service/) / [Resend](https://resend.com/)
 
 - **Cache**: [Cloudflare KV](https://developers.cloudflare.com/kv/)
 
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/)
 
 - **File Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/)
+
+## Email Sending Configuration
+
+Cloud Mail supports two outbound email providers:
+
+1. **Cloudflare Email Service**: Recommended first choice. Emails are sent directly through a Cloudflare Workers binding.
+2. **Resend**: A compatible fallback. You can configure Resend API keys for different domains in the admin panel.
+
+When the Worker has a Cloudflare Email Service binding, Cloud Mail will use Cloudflare first. If the binding is not configured, it falls back to Resend.
+
+### Cloudflare Email Service
+
+To enable Cloudflare Email Service, first configure Email Service / sending domains in the Cloudflare Dashboard, then add the following binding to `mail-worker/wrangler.toml`:
+
+```toml
+[[send_email]]
+name = "EMAIL"
+```
+
+> Note: use `name = "EMAIL"`, not `binding = "EMAIL"`. The backend calls this binding with `c.env.EMAIL.send(...)`.
+
+The binding is already prepared in these configuration files:
+
+- `mail-worker/wrangler.toml`
+- `mail-worker/wrangler-dev.toml`
+- `mail-worker/wrangler-test.toml`
+- `mail-worker/wrangler-action.toml`
+
+### Resend
+
+If you do not use Cloudflare Email Service, you can still use Resend:
+
+1. Create a Resend account.
+2. Verify your sending domain.
+3. Create an API Key.
+4. Log in to the admin panel and configure the Resend Token for the corresponding domain.
+
+### Supported Sending Features
+
+The current email sending feature supports:
+
+- Plain text / HTML emails
+- Multiple recipients
+- Reply email headers
+- Attachments
+- Inline images
+- Sending status records
 
 ## Project Structure
 

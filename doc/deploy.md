@@ -36,15 +36,18 @@ Cloud Mail 由两个子项目组成：
 
 - Cloudflare AI 绑定
 - Email Routing
+- Cloudflare Email Service
 - 自定义 Worker 域名
 
 ### 2.2 第三方服务
 
-如果需要发信功能，还需要：
+如果使用 Resend 发信，还需要：
 
 - [Resend](https://resend.com/) 账号
 - 已验证的发信域名
 - Resend API Key
+
+如果使用 Cloudflare Email Service 发信，需要在 Cloudflare Dashboard 中完成 Email Service / 发信域名配置。
 
 ---
 
@@ -201,7 +204,7 @@ binding = "r2"
 bucket_name = "你的R2桶名"
 
 [[send_email]]
-name = "email"
+name = "EMAIL"
 
 [ai]
 binding = "ai"
@@ -235,6 +238,19 @@ command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run bu
 - `assets`
 
 因为后端代码默认使用这些名字读取 Cloudflare 资源。
+
+如果启用 Cloudflare Email Service，`send_email` 的名称也不要修改：
+
+- `EMAIL`
+
+Wrangler 配置必须写成：
+
+```toml
+[[send_email]]
+name = "EMAIL"
+```
+
+不要写成 `binding = "EMAIL"`，否则 Wrangler 会报错：`send_email bindings should have a string name field`。
 
 ## 6.4 前端构建
 
@@ -301,7 +317,7 @@ https://你的域名/
 5. 将域名接入 Cloudflare
 6. 配置自定义域名或路由
 7. 配置 Email Routing
-8. 配置 Resend 发信域名和 API Key
+8. 配置 Cloudflare Email Service 或 Resend 发信域名和 API Key
 
 ---
 
@@ -321,14 +337,39 @@ Cloud Mail 的核心能力包括收信与发信，因此部署成功后还需要
 
 ## 8.2 发信配置
 
-项目 README 说明发信依赖 Resend，因此你需要：
+Cloud Mail 支持两种发信方式：
+
+1. Cloudflare Email Service
+2. Resend
+
+系统优先级为：**Cloudflare Email Service > Resend**。如果 Worker 配置了 `EMAIL` 发信绑定，则优先通过 Cloudflare 发信；否则回退到后台配置的 Resend Token。
+
+### 8.2.1 Cloudflare Email Service 发信
+
+如果要使用 Cloudflare Email Service，请先在 Cloudflare Dashboard 中完成 Email Service / 发信域名配置，然后在 Wrangler 配置中加入：
+
+```toml
+[[send_email]]
+name = "EMAIL"
+```
+
+注意：
+
+- 必须使用 `name = "EMAIL"`
+- 不要写成 `binding = "EMAIL"`
+- 后端代码通过 `c.env.EMAIL.send(...)` 调用
+- `mail-worker/wrangler-action.toml` 也需要保留该配置，GitHub Actions 部署时才会生效
+
+### 8.2.2 Resend 发信
+
+如果不使用 Cloudflare Email Service，也可以继续使用 Resend：
 
 1. 在 Resend 注册账号
 2. 验证发信域名
 3. 获取 API Key
-4. 将相关密钥配置到部署环境中
+4. 登录后台，在系统设置中为对应域名配置 Resend Token
 
-如果未配置 Resend，则发送邮件相关功能无法正常工作。
+如果 Cloudflare Email Service 和 Resend 都未配置，则站外发信功能无法正常工作。
 
 ---
 
@@ -386,6 +427,8 @@ https://你的域名/api/
 请检查：
 
 - Resend 是否已正确配置
+- 或 Cloudflare Email Service 是否已正确配置
+- `wrangler.toml` 中是否存在 `[[send_email]] name = "EMAIL"`
 - 发信域名是否已验证
 - API Key 是否注入到运行环境
 
@@ -414,7 +457,7 @@ https://你的域名/api/
 - [ ] 前端已成功构建
 - [ ] Worker 已成功部署
 - [ ] 初始化接口已执行
-- [ ] Resend 已配置
+- [ ] Cloudflare Email Service 或 Resend 已配置
 - [ ] Email Routing 已配置
 - [ ] 首页与 API 均可正常访问
 
@@ -453,7 +496,7 @@ Cloud Mail 的部署核心是：
 
 - 使用 Cloudflare Workers 承载后端与静态资源
 - 使用 D1、KV、R2 提供数据库、缓存与对象存储
-- 使用 Email Routing 和 Resend 提供邮件收发能力
+- 使用 Email Routing 提供收信能力，使用 Cloudflare Email Service 或 Resend 提供发信能力
 - 使用初始化接口完成系统首次安装
 
 推荐使用 **GitHub Actions 自动部署**，维护成本最低；需要更高灵活性时，再使用 **Wrangler 本地手动部署**。
