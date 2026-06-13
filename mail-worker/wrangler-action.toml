@@ -23,7 +23,7 @@ binding = "r2"
 bucket_name = "${R2_BUCKET_NAME}"
 
 [[send_email]]
-binding = "EMAIL"		# CF发件, 配置后优先使用
+name = "EMAIL"		# CF发件, 配置后优先使用
 
 [ai]
 binding = "ai"

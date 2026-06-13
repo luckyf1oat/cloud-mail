@@ -21,7 +21,7 @@ id = "9be10cd058e04c55b526f8c0c116f50c"					#kv数据库id
 #bucket_name = "test-email"		#r2对象存储桶的名字
 
 [[send_email]]
-binding = "EMAIL"		# CF发件, 配置后优先使用
+name = "EMAIL"		# CF发件, 配置后优先使用
 
 [ai]
 binding = "ai"
