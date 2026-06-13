@@ -231,7 +231,7 @@ const emailService = {
 
 		const domain = emailUtils.getDomain(accountRow.email);
 		const resendToken = resendTokens[domain];
-		const useCloudflareEmail = !!c.env.email;
+		const useCloudflareEmail = !!c.env.EMAIL;
 
 		//如果接收方存在站外邮箱，又没有发信服务
 		if (!useCloudflareEmail && !resendToken && !allInternal) {
@@ -377,7 +377,7 @@ const emailService = {
 
 	async sendByCloudflareEmail(c, params) {
 		const sendForm = {
-			from: { email: params.accountEmail, name: params.name },
+			from: params.name ? `${params.name} <${params.accountEmail}>` : params.accountEmail,
 			to: [...params.receiveEmail],
 			subject: params.subject
 		};
@@ -402,7 +402,7 @@ const emailService = {
 			};
 		}
 
-		const result = await c.env.email.send(sendForm);
+		const result = await c.env.EMAIL.send(sendForm);
 
 		return {
 			data: {
