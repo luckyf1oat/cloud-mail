@@ -134,6 +134,62 @@ The current email sending feature supports:
 - Inline images
 - Sending status records
 
+## Workers AI Verification Code Recognition
+
+Cloud Mail uses Workers AI to automatically extract verification codes when receiving emails. The extracted value is saved to the email record's `code` field and can be displayed in the email list or Telegram notifications.
+
+### How to Enable
+
+1. Enable the Workers AI binding in `mail-worker/wrangler.toml`:
+
+```toml
+[ai]
+binding = "ai"
+```
+
+2. Optionally configure the AI model:
+
+```toml
+[vars]
+ai_model = "@cf/meta/llama-3.1-8b-instruct"
+```
+
+If `ai_model` is not configured, the backend defaults to:
+
+```text
+@cf/meta/llama-3.1-8b-instruct
+```
+
+3. After deploying the Worker, open the admin panel:
+
+```text
+System Settings → Workers AI → Verification Code Recognition
+```
+
+Turn on the recognition switch.
+
+### Recognition Rules
+
+The Recognition Rules setting controls which senders are processed by Workers AI:
+
+- Empty: recognize all received emails.
+- Email address: only recognize emails from a specific sender, such as `noreply@example.com`.
+- Domain: only recognize emails from a specific sender domain, such as `example.com`.
+
+Multiple rules can be added.
+
+### Workflow
+
+When an email is received, the system will:
+
+1. Read the subject, plain text body, or HTML converted to text.
+2. Check the admin switch and recognition rules.
+3. Call `c.env.ai.run(...)` to extract the verification code.
+4. Accept only codes with **8 characters or fewer and no spaces**.
+5. Save the extracted code to the email record.
+
+If `[ai] binding = "ai"` is not configured, disable Verification Code Recognition in the admin panel; otherwise extraction will fail and errors will be logged in Worker logs.
+
 ## Project Structure
 
 ```

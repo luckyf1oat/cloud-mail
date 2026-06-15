@@ -141,6 +141,62 @@ name = "EMAIL"
 - 内嵌图片发送
 - 发送状态记录
 
+## Workers AI 验证码识别
+
+Cloud Mail 使用 Workers AI 在**收信时自动识别邮件验证码**，识别结果会保存到邮件记录的 `code` 字段，并在邮件列表、Telegram 推送等场景中展示/使用。
+
+### 启用方式
+
+1. 在 `mail-worker/wrangler.toml` 中启用 Workers AI 绑定：
+
+```toml
+[ai]
+binding = "ai"
+```
+
+2. 可选配置 AI 模型：
+
+```toml
+[vars]
+ai_model = "@cf/meta/llama-3.1-8b-instruct"
+```
+
+如果不配置 `ai_model`，后端默认使用：
+
+```text
+@cf/meta/llama-3.1-8b-instruct
+```
+
+3. 部署 Worker 后，进入后台：
+
+```text
+系统设置 → Workers AI → 识别验证码
+```
+
+打开「识别验证码」开关即可。
+
+### 识别规则
+
+后台的「识别规则」用于限制哪些发件人参与验证码识别：
+
+- 留空：识别所有收到的邮件。
+- 填写邮箱：只识别指定发件邮箱，例如 `noreply@example.com`。
+- 填写域名：只识别指定发件域名，例如 `example.com`。
+
+多个规则可以同时添加。
+
+### 工作流程
+
+收到邮件后，系统会：
+
+1. 读取邮件主题、纯文本内容或 HTML 转文本内容。
+2. 根据后台「识别验证码」开关和「识别规则」判断是否调用 Workers AI。
+3. 调用 `c.env.ai.run(...)` 提取验证码。
+4. 只接受 **8 位以内且不包含空格** 的验证码。
+5. 将识别结果保存到邮件记录中。
+
+如果未配置 `[ai] binding = "ai"`，请在后台关闭「识别验证码」，否则收到邮件时验证码识别会失败并在 Worker 日志中输出错误。
+
 ## 目录结构
 
 ```
@@ -200,6 +256,7 @@ cloud-mail
 ## 交流
 
 [Telegram](https://t.me/cloud_mail_tg)
+
 
 
 

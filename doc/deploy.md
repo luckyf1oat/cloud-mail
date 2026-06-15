@@ -239,6 +239,15 @@ command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run bu
 
 因为后端代码默认使用这些名字读取 Cloudflare 资源。
 
+Workers AI 绑定必须保持为：
+
+```toml
+[ai]
+binding = "ai"
+```
+
+后端验证码识别代码会通过 `c.env.ai.run(...)` 调用该绑定。如果你不准备使用验证码识别功能，可以不配置 AI 绑定，但需要在后台关闭「识别验证码」。
+
 如果启用 Cloudflare Email Service，`send_email` 的名称也不要修改：
 
 - `EMAIL`
@@ -373,6 +382,77 @@ name = "EMAIL"
 
 ---
 
+## 8.3 Workers AI 验证码识别
+
+Cloud Mail 内置 Workers AI 验证码识别功能。它会在**收到邮件时**尝试从邮件主题和正文中提取验证码，并将结果保存到邮件记录的 `code` 字段。
+
+### 8.3.1 启用 Workers AI 绑定
+
+在 Wrangler 配置中加入：
+
+```toml
+[ai]
+binding = "ai"
+```
+
+可选指定模型：
+
+```toml
+[vars]
+ai_model = "@cf/meta/llama-3.1-8b-instruct"
+```
+
+如果不配置 `ai_model`，系统默认使用：
+
+```text
+@cf/meta/llama-3.1-8b-instruct
+```
+
+### 8.3.2 后台开启识别
+
+部署完成并初始化系统后，进入后台：
+
+```text
+系统设置 → Workers AI → 识别验证码
+```
+
+打开开关即可启用。
+
+注意：项目中的开关值遵循现有约定：
+
+- `0` 表示开启
+- `1` 表示关闭
+
+### 8.3.3 配置识别规则
+
+后台「识别规则」用于限制哪些发件人会调用 Workers AI：
+
+- 留空：识别所有收到的邮件
+- 填写完整邮箱：只识别该发件邮箱，例如 `noreply@example.com`
+- 填写域名：只识别该发件域名，例如 `example.com`
+
+建议只配置常见验证码邮件来源，避免所有邮件都调用 AI，降低 Workers AI 调用量。
+
+### 8.3.4 识别逻辑说明
+
+代码位置：
+
+- `mail-worker/src/email/email.js`
+- `mail-worker/src/service/ai-service.js`
+
+处理流程：
+
+1. Worker 收到邮件。
+2. 解析邮件主题、纯文本内容、HTML 内容。
+3. 根据后台「识别验证码」和「识别规则」判断是否调用 AI。
+4. 调用 `c.env.ai.run(c.env.ai_model || '@cf/meta/llama-3.1-8b-instruct', ...)`。
+5. AI 返回 JSON，例如：`{"code":"123456"}`。
+6. 系统只保存 **8 位以内且不包含空格** 的验证码。
+
+如果没有配置 `[ai] binding = "ai"`，但后台开启了验证码识别，收信时会尝试调用不存在的 AI 绑定，验证码识别会失败并在 Worker 日志中输出 `验证码提取失败`。如果不使用该功能，请关闭后台「识别验证码」。
+
+---
+
 ## 9. 项目访问路径
 
 部署后通常有两类访问地址。
@@ -439,6 +519,24 @@ https://你的域名/api/
 - R2 Bucket 是否创建成功
 - `wrangler.toml` 中 `r2` 绑定是否正确
 - 权限是否正常
+
+## 10.6 Workers AI 验证码识别失败
+
+请检查：
+
+- `wrangler.toml` 是否存在：
+
+```toml
+[ai]
+binding = "ai"
+```
+
+- Cloudflare 账号是否已启用 Workers AI
+- 后台「识别验证码」是否已开启
+- 「识别规则」是否匹配当前邮件发件邮箱或发件域名
+- Worker 日志中是否存在 `验证码提取失败`
+
+如果你不使用验证码识别功能，请在后台关闭「识别验证码」。
 
 ---
 
